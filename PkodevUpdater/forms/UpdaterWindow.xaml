@@ -1,0 +1,112 @@
+﻿<Window x:Class="PkodevUpdater.UpdaterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Loading..." Height="580" Width="370" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" UseLayoutRounding="True" Background="{x:Null}" AllowsTransparency="True" WindowStyle="None" MouseDown="Window_MouseDown">
+
+    <Grid HorizontalAlignment="Center" Height="580" VerticalAlignment="Top" Width="370" RenderTransformOrigin="0.5,0.5">
+        <Grid.RenderTransform>
+            <TransformGroup>
+                <ScaleTransform/>
+                <SkewTransform/>
+                <RotateTransform Angle="0"/>
+                <TranslateTransform/>
+            </TransformGroup>
+        </Grid.RenderTransform>
+
+        <Rectangle x:Name="MainBody" HorizontalAlignment="Center" Height="580" VerticalAlignment="Center" Width="369" RadiusX="10" RadiusY="10" Fill="#FF1F2128" Panel.ZIndex="1"/>
+
+        <Grid x:Name="CloseBtnGrid" HorizontalAlignment="Left" Cursor="Hand" Height="29" Margin="323,-1,0,0" VerticalAlignment="Top" Panel.ZIndex="2" MouseLeftButtonDown="CloseBtn_MouseLeftButtonDown">
+
+            <Rectangle x:Name="CloseBtn" HorizontalAlignment="Center" Height="28" VerticalAlignment="Center" Width="47" RadiusX="10" Panel.ZIndex="2">
+                <Rectangle.Style>
+                    <Style TargetType="{x:Type Rectangle}">
+                        <Setter Property="Fill" Value="#FF8F2929"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=CloseBtnGrid}" Value="True">
+                                <Setter Property="Fill" Value="#FF953939"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Rectangle.Style>
+            </Rectangle>
+            <Label Content="X" HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="2" FontSize="10" FontFamily="Segoe UI" Foreground="#FFFCE2E2"/>
+
+        </Grid>
+
+        <Rectangle x:Name="ImageContainer" HorizontalAlignment="Center" Height="396" Margin="0,53,0,0" Stroke="Black" VerticalAlignment="Top" Width="320" RadiusX="10" RadiusY="10" StrokeThickness="0" Panel.ZIndex="2">
+            <Rectangle.Fill>
+                <ImageBrush x:Name="BannerImage" ImageSource="/images/header.jpg" Stretch="UniformToFill" TileMode="None"/>
+            </Rectangle.Fill>
+            <Rectangle.Effect>
+                <DropShadowEffect BlurRadius="45" 
+                           ShadowDepth="0" 
+                           Color="Black" Direction="150" RenderingBias="Quality" Opacity="0.7"/>
+            </Rectangle.Effect>
+        </Rectangle>
+
+        <Grid Name="StartGameGrid" Panel.ZIndex="2" Margin="25,476,11,51">
+            <Grid.Style>
+                <Style TargetType="{x:Type Grid}">
+                    <Setter Property="Cursor" Value="No"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsGameUpToDate}" Value="True">
+                            <Setter Property="Cursor" Value="Hand"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <Rectangle Name="StartGameBtn" HorizontalAlignment="Center" Height="50" VerticalAlignment="Top" Width="320" StrokeThickness="0" RadiusX="10" RadiusY="10" Panel.ZIndex="2">
+                <Rectangle.Style>
+                    <Style TargetType="{x:Type Rectangle}">
+                        <Setter Property="Fill" Value="#FF57545F"/>
+                        <Setter Property="Cursor" Value="No"/>
+
+                        <Style.Triggers>
+
+                            <DataTrigger Binding="{Binding IsGameUpToDate}" Value="True">
+                                <Setter Property="Fill" Value="#FF6237CE"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                            </DataTrigger>
+
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsGameUpToDate}" Value="True" />
+                                    <Condition Binding="{Binding IsMouseOver, ElementName=StartGameGrid}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Fill" Value="#FF7248DC"/>
+                            </MultiDataTrigger>
+
+                        </Style.Triggers>
+
+                    </Style>
+                </Rectangle.Style>
+            </Rectangle>
+            <Label Content="START GAME" HorizontalAlignment="Center" VerticalAlignment="Top" Height="38" Width="131" Panel.ZIndex="3" Background="{x:Null}" Foreground="White" FontSize="20" FontWeight="Bold" Margin="0,6,0,0"/>
+        </Grid>
+
+        <Grid Panel.ZIndex="2" Margin="25,534,25,9">
+            <Label x:Name="ProgressLabel" Content="Receiving update information..." HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FF919295" FontSize="10" Panel.ZIndex="2"/>
+            <ProgressBar HorizontalAlignment="Left" Height="6" Margin="4,24,0,0" VerticalAlignment="Top" Width="320" BorderThickness="0,0,0,0" SnapsToDevicePixels="True" Value="10" Foreground="#1EFFFFFF" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="2">
+                <ProgressBar.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </ProgressBar.RenderTransform>
+                <ProgressBar.Background>
+                    <LinearGradientBrush EndPoint="0,0.5" StartPoint="1,0.5">
+                        <GradientStop Color="#FF364FAE" Offset="1"/>
+                        <GradientStop Color="#FF8A22EB" Offset="0"/>
+                    </LinearGradientBrush>
+                </ProgressBar.Background>
+            </ProgressBar>
+        </Grid>
+
+    </Grid>
+</Window>

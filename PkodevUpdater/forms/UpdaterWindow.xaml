@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         Title="Loading..." Height="580" Width="370" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" UseLayoutRounding="True" Background="{x:Null}" AllowsTransparency="True" WindowStyle="None" MouseDown="Window_MouseDown">
 
-    <Grid HorizontalAlignment="Center" Height="580" VerticalAlignment="Top" Width="370" RenderTransformOrigin="0.5,0.5">
+    <Grid HorizontalAlignment="Center" Height="580" VerticalAlignment="Top" Width="370" RenderTransformOrigin="0.5,0.5" Loaded="FrameworkElement_OnInitialized">
         <Grid.RenderTransform>
             <TransformGroup>
                 <ScaleTransform/>

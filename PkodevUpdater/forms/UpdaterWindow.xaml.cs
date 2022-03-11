@@ -1,19 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Configuration;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using UpdaterLibrary.Interfaces;
 
 namespace PkodevUpdater
 {
@@ -22,19 +12,18 @@ namespace PkodevUpdater
     /// </summary>
     public partial class UpdaterWindow : Window, INotifyPropertyChanged
     {
+        private readonly IGithubService _githubService;
         public bool IsGameUpToDate { get; set; }
 
-        public UpdaterWindow()
+        public UpdaterWindow(IGithubService githubService)
         {
             DataContext = this;
             InitializeComponent();
+
             IsGameUpToDate = true;
             OnPropertyChanged("IsGameUpToDate");
-        }
 
-        private void Grid_Initialized(object sender, EventArgs e)
-        {
-            Title = ConfigurationManager.AppSettings["Title"] ?? "Game Updater";
+            _githubService = githubService;
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -45,12 +34,6 @@ namespace PkodevUpdater
 
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
-        /*private void ButtonClick(object sender, RoutedEventArgs e)
-        {
-            Flag = true;
-            OnPropertyChanged("Flag");
-        }*/
-
         protected void OnPropertyChanged(string property)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
@@ -59,6 +42,18 @@ namespace PkodevUpdater
         private void CloseBtn_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             Close();
+        }
+
+        private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
+        {
+            var commits = await _githubService.GetAllCommitsAsync();
+            if (commits != null && commits.Any())
+            {
+                foreach (var commit in commits)
+                {
+                    MessageBox.Show(commit.Sha);
+                }
+            }
         }
     }
 }

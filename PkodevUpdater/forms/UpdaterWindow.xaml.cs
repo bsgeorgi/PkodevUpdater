@@ -48,13 +48,10 @@ namespace PkodevUpdater
 
         private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
         {
-            var commit = await _commitService.GetCommitInfoAsync("9a8944231ff5347d3879f7c61b0bec87d7c66d38")
+            var lastCommit = await _commitService.GetLastCommitAsync()
                 .ConfigureAwait(false);
 
-            foreach (var file in commit.Files)
-            {
-                MessageBox.Show($"{file.Filename} = {file.Status}");
-            }
+            MessageBox.Show(lastCommit.Sha);
         }
     }
 }

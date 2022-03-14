@@ -9,5 +9,9 @@ namespace UpdaterLibrary.Interfaces
         public Task<IEnumerable<GitHubCommit>?> GetAllCommitsAsync();
 
         public Task<GitHubCommit> GetCommitInfoAsync(string commitSha);
+
+        public Task<GitHubCommit> GetLastCommitAsync();
+
+        public Task<GitHubCommit> GetFirstCommitAsync();
     }
 }

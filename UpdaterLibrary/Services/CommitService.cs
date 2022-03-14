@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Octokit;
@@ -42,7 +43,7 @@ namespace UpdaterLibrary.Services
 
             var commits = await gitHubClient.Repository.Commit.GetAll(repository.Id);
             
-            return commits;
+            return commits.ToList();
         }
 
         public async Task<GitHubCommit> GetCommitInfoAsync(string commitSha)
@@ -63,6 +64,32 @@ namespace UpdaterLibrary.Services
             var commitDetails = await gitHubClient.Repository.Commit.Get(repository.Id, commitSha);
 
             return commitDetails;
+        }
+
+        public async Task<GitHubCommit> GetLastCommitAsync()
+        {
+            var commits = await GetAllCommitsAsync()
+                .ConfigureAwait(false);
+
+            if (commits == null)
+            {
+                throw new NullReferenceException("Repository commits returned null value");
+            }
+
+            return commits.First();
+        }
+
+        public async Task<GitHubCommit> GetFirstCommitAsync()
+        {
+            var commits = await GetAllCommitsAsync()
+                .ConfigureAwait(false);
+
+            if (commits == null)
+            {
+                throw new NullReferenceException("Repository commits returned null value");
+            }
+
+            return commits.Reverse().First();
         }
     }
 }

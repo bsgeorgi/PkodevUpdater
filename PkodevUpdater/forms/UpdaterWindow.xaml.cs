@@ -12,10 +12,11 @@ namespace PkodevUpdater
     /// </summary>
     public partial class UpdaterWindow : Window, INotifyPropertyChanged
     {
-        private readonly IGithubService _githubService;
+        private readonly ICommitService _commitService;
+        private readonly IRepositoryService _repositoryService;
         public bool IsGameUpToDate { get; set; }
 
-        public UpdaterWindow(IGithubService githubService)
+        public UpdaterWindow(ICommitService commitService, IRepositoryService repositoryService)
         {
             DataContext = this;
             InitializeComponent();
@@ -23,7 +24,8 @@ namespace PkodevUpdater
             IsGameUpToDate = true;
             OnPropertyChanged("IsGameUpToDate");
 
-            _githubService = githubService;
+            _commitService = commitService;
+            _repositoryService = repositoryService;
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -46,13 +48,12 @@ namespace PkodevUpdater
 
         private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
         {
-            var commits = await _githubService.GetAllCommitsAsync();
-            if (commits != null && commits.Any())
+            var commit = await _commitService.GetCommitInfoAsync("9a8944231ff5347d3879f7c61b0bec87d7c66d38")
+                .ConfigureAwait(false);
+
+            foreach (var file in commit.Files)
             {
-                foreach (var commit in commits)
-                {
-                    MessageBox.Show(commit.Sha);
-                }
+                MessageBox.Show($"{file.Filename} = {file.Status}");
             }
         }
     }

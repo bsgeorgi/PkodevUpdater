@@ -4,10 +4,8 @@ using Octokit;
 
 namespace UpdaterLibrary.Interfaces
 {
-    public interface IGithubService
+    public interface IRepositoryService
     {
         public Task<Repository?> GetRepositoryAsync();
-
-        public Task<IEnumerable<GitHubCommit>?> GetAllCommitsAsync();
     }
 }

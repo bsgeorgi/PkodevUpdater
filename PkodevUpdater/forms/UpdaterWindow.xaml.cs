@@ -3,7 +3,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using Microsoft.Extensions.Options;
 using UpdaterLibrary.Interfaces;
+using UpdaterLibrary.Models;
 
 namespace PkodevUpdater
 {
@@ -14,9 +16,12 @@ namespace PkodevUpdater
     {
         private readonly ICommitService _commitService;
         private readonly IRepositoryService _repositoryService;
+        private readonly IVersionService _versionService;
+        private readonly IOptions<AppSettings> _appSettings;
         public bool IsGameUpToDate { get; set; }
 
-        public UpdaterWindow(ICommitService commitService, IRepositoryService repositoryService)
+        public UpdaterWindow(ICommitService commitService, IRepositoryService repositoryService,
+            IVersionService versionService, IOptions<AppSettings> appSettings)
         {
             DataContext = this;
             InitializeComponent();
@@ -26,6 +31,8 @@ namespace PkodevUpdater
 
             _commitService = commitService;
             _repositoryService = repositoryService;
+            _versionService = versionService;
+            _appSettings = appSettings;
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -48,10 +55,8 @@ namespace PkodevUpdater
 
         private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
         {
-            var lastCommit = await _commitService.GetLastCommitAsync()
-                .ConfigureAwait(false);
-
-            MessageBox.Show(lastCommit.Sha);
+            var gameVersion = _appSettings.Value.ClientCommitAt;
+            MessageBox.Show(gameVersion);
         }
     }
 }

@@ -1,4 +1,9 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using UpdaterLibrary.Interfaces;
 using UpdaterLibrary.Models;
 
@@ -46,10 +51,31 @@ namespace UpdaterLibrary.Services
 
         public bool UpdateClientVersion(string commitSha)
         {
-            // TODO: overwrite ClientCommitAt value in appsettings.json
-            // With commitSha value
-            // Return true if successful
-            return true;
+            try
+            {
+                var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var appSettingsFile = Path.Combine(currentDirectory, "appsettings.json");
+
+                if (!File.Exists(appSettingsFile))
+                {
+                    return false;
+                }
+
+                var appSettingsString = File.ReadAllText(appSettingsFile, Encoding.UTF8);
+                var jsonObject = JsonConvert.DeserializeObject<AppSettings>(appSettingsString);
+
+                if (jsonObject == null) return false;
+
+                jsonObject.ClientCommitAt = commitSha;
+
+                var json = JsonConvert.SerializeObject(jsonObject, Formatting.Indented);
+                File.WriteAllText(appSettingsFile, json);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

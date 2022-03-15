@@ -55,8 +55,8 @@ namespace PkodevUpdater
 
         private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
         {
-            var gameVersion = _appSettings.Value.ClientCommitAt;
-            MessageBox.Show(gameVersion);
+            var gameVersion = _versionService.UpdateClientVersion("afas");
+            MessageBox.Show(gameVersion.ToString());
         }
     }
 }

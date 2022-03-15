@@ -20,6 +20,13 @@ namespace UpdaterLibrary.Services
             _commitService = commitService;
         }
 
+        /// <summary>
+        /// Retrieves the version of currently installed client
+        /// from appsettings.json file.
+        /// If version is not present in the appsettings.json
+        /// file, then by default first commit hash is used.
+        /// </summary>
+        /// <returns>A string value representing the hash of current client version.</returns>
         public string GetCurrentClientVersion()
         {
             var clientVersion = string.Empty;
@@ -40,6 +47,10 @@ namespace UpdaterLibrary.Services
             return clientVersion;
         }
 
+        /// <summary>
+        /// Identifies if currently installed client is up to date.
+        /// </summary>
+        /// <returns>A boolean value indicating if client is up to date.</returns>
         public bool IsClientUpToDate()
         {
             var lastCommit = _commitService.GetLastCommitAsync()
@@ -49,8 +60,14 @@ namespace UpdaterLibrary.Services
             return lastCommit.Sha == GetCurrentClientVersion();
         }
 
+        /// <summary>
+        /// Tries to update the current version of client stored inside appsettings.json file.
+        /// </summary>
+        /// <param name="commitSha">Hash that will be saved in appsettings.json file.</param>
+        /// <returns>A boolean value indicating if version has been saved successfully.</returns>
         public bool UpdateClientVersion(string commitSha)
         {
+            // TODO: check if commitSha is a valid hash
             try
             {
                 var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);

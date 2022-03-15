@@ -22,10 +22,10 @@ namespace UpdaterLibrary.Services
             var clientCommitAt = _appSettings.Value.ClientCommitAt;
             if (string.IsNullOrEmpty(clientCommitAt))
             {
-                var lastCommitHash = _commitService.GetLastCommitAsync()
+                var firstCommit = _commitService.GetFirstCommitAsync()
                     .GetAwaiter()
                     .GetResult();
-                clientVersion = lastCommitHash.Sha;
+                clientVersion = firstCommit.Sha;
             }
             else
             {
@@ -37,10 +37,11 @@ namespace UpdaterLibrary.Services
 
         public bool IsClientUpToDate()
         {
-            // TODO: Check if client is up to date by comparing
-            // ClientCommitAt value from appsettings.json against latest
-            // Commit Sha from HEAD
-            return false;
+            var lastCommit = _commitService.GetLastCommitAsync()
+                .GetAwaiter()
+                .GetResult();
+
+            return lastCommit.Sha == GetCurrentClientVersion();
         }
 
         public bool UpdateClientVersion(string commitSha)

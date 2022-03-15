@@ -1,21 +1,38 @@
-﻿using UpdaterLibrary.Interfaces;
+﻿using Microsoft.Extensions.Options;
+using UpdaterLibrary.Interfaces;
+using UpdaterLibrary.Models;
 
 namespace UpdaterLibrary.Services
 {
     public class VersionService : IVersionService
     {
-        public VersionService()
-        {
+        private readonly IOptions<AppSettings> _appSettings;
+        private readonly ICommitService _commitService;
 
+        public VersionService(IOptions<AppSettings> appSettings, ICommitService commitService)
+        {
+            _appSettings = appSettings;
+            _commitService = commitService;
         }
 
         public string GetCurrentClientVersion()
         {
-            // TODO: retrieve ClientCommitAt from appsetting.json
-            // If ClientCommitAt is empty, then set it as
-            // The very first commit hash from the repository
-            // Using UpdateClientVersion method
-            return string.Empty;
+            var clientVersion = string.Empty;
+
+            var clientCommitAt = _appSettings.Value.ClientCommitAt;
+            if (string.IsNullOrEmpty(clientCommitAt))
+            {
+                var lastCommitHash = _commitService.GetLastCommitAsync()
+                    .GetAwaiter()
+                    .GetResult();
+                clientVersion = lastCommitHash.Sha;
+            }
+            else
+            {
+                clientVersion = clientCommitAt;
+            }
+
+            return clientVersion;
         }
 
         public bool IsClientUpToDate()

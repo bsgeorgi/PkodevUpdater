@@ -11,5 +11,7 @@
         public string Title { get; set; }
 
         public string ProductHeader { get; set; }
+
+        public string ClientCommitAt { get; set; }
     }
 }

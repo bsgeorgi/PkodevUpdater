@@ -36,7 +36,7 @@ namespace UpdaterLibrary.Services
         /// <returns>A string value representing the hash of current client version.</returns>
         public async Task<string> GetCurrentClientVersionAsync()
         {
-            var clientVersion = string.Empty;
+            string clientVersion;
 
             var clientCommitAt = _appSettings.Value.ClientCommitAt;
             if (string.IsNullOrEmpty(clientCommitAt))
@@ -150,15 +150,20 @@ namespace UpdaterLibrary.Services
 
                 var allCommits = await _commitService.GetAllCommitsAsync();
 
-                var gitHubCommits = allCommits as GitHubCommit[] ?? allCommits.ToArray();
-                if (!gitHubCommits.Any()) return missingCommits;
+                if (allCommits != null)
+                {
+                    var gitHubCommits = allCommits as GitHubCommit[] ?? allCommits.ToArray();
+                    if (!gitHubCommits.Any()) return missingCommits;
 
-                missingCommits.AddRange(gitHubCommits.TakeWhile(commit => commit.Sha != currentClientVersion));
+                    missingCommits.AddRange(gitHubCommits.TakeWhile(commit => commit.Sha != currentClientVersion));
+                }
 
                 // Reverse items in missingCommits list
                 // Since we want to update the client chronologically
-                missingCommits.Reverse();
-
+                if (missingCommits.Any() && missingCommits.Count > 1)
+                {
+                    missingCommits.Reverse();
+                }
             }
             catch
             {
@@ -208,7 +213,7 @@ namespace UpdaterLibrary.Services
         /// Downloads a file to current directory.
         /// </summary>
         /// <param name="url"></param>
-        /// <param name="fileName"></param>
+        /// <param name="filePath"></param>
         public void DownloadFile(string url, string filePath)
         {
             try
@@ -219,8 +224,12 @@ namespace UpdaterLibrary.Services
                 var path = Path.Combine(currentDirectory, filePath);
 
                 // Create a folder if it does not exist for some reason
-                var directory = new FileInfo(path).Directory.FullName;
-                var dir = Directory.CreateDirectory(directory);
+                var directoryInfo = new FileInfo(path).Directory;
+                if (directoryInfo != null)
+                {
+                    var directory = directoryInfo.FullName;
+                    _ = Directory.CreateDirectory(directory);
+                }
 
                 WebClient.DownloadFile(url, path);
             }
@@ -233,7 +242,7 @@ namespace UpdaterLibrary.Services
         /// <summary>
         /// Tries to delete the specified file.
         /// </summary>
-        /// <param name="filePath"></param>
+        /// <param name="file"></param>
         public void TryDeleteFile(string file)
         {
             // TODO: delete dir if it was the last file

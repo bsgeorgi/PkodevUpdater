@@ -1,5 +1,4 @@
-﻿#nullable enable
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Octokit;
 using UpdaterLibrary.Interfaces;
 using UpdaterLibrary.Models;

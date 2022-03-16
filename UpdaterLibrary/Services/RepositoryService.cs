@@ -13,7 +13,7 @@ namespace UpdaterLibrary.Services
         private readonly IOptions<AppSettings> _appSettings;
 
         public RepositoryService(IOctokitGithubClientFactory octokitGithubClientFactory, IOptions<AppSettings> appSettings)
-        {;
+        {
             _octokitGithubClientFactory = octokitGithubClientFactory;
             _appSettings = appSettings;
         }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using PkodevUpdater.Forms;
 using UpdaterLibrary.Extensions;
 using UpdaterLibrary.Interfaces;
 using UpdaterLibrary.Models;
@@ -55,7 +56,7 @@ namespace PkodevUpdater
                     services.AddSingleton<UpdaterWindow>();
                     services.AddServiceCollection();
                 })
-                .ConfigureAppConfiguration((context, config) =>
+                .ConfigureAppConfiguration((_, config) =>
                 {
                     var curDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                     config.SetBasePath(curDir)

@@ -8,23 +8,11 @@ namespace UpdaterLibrary.Services
     public class BackgroundQueueService : IBackgroundQueueService
     {
         private Task _previousTask = Task.FromResult(true);
-        private object key = new object();
-
-        public Task QueueTask(Action action)
-        {
-            lock (key)
-            {
-                _previousTask = _previousTask.ContinueWith(t => action()
-                    , CancellationToken.None
-                    , TaskContinuationOptions.None
-                    , TaskScheduler.Default);
-                return _previousTask;
-            }
-        }
+        private readonly object _key = new object();
 
         public Task<T> QueueTask<T>(Func<T> work)
         {
-            lock (key)
+            lock (_key)
             {
                 var task = _previousTask.ContinueWith(t => work()
                     , CancellationToken.None

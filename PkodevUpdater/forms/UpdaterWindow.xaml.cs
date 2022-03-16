@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Extensions.Options;
 using UpdaterLibrary.Interfaces;
 using UpdaterLibrary.Models;
 
-namespace PkodevUpdater
+namespace PkodevUpdater.Forms
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -17,10 +20,11 @@ namespace PkodevUpdater
         private readonly ICommitService _commitService;
         private readonly IPatchService _patchService;
         private readonly IBackgroundQueueService _backgroundQueueService;
+        private readonly IOptions<AppSettings> _appSettings;
         public bool IsGameUpToDate { get; set; }
 
         public UpdaterWindow(ICommitService commitService, IPatchService patchService,
-            IBackgroundQueueService backgroundQueueService)
+            IBackgroundQueueService backgroundQueueService, IOptions<AppSettings> appSettings)
         {
             DataContext = this;
             InitializeComponent();
@@ -28,48 +32,90 @@ namespace PkodevUpdater
             _commitService = commitService;
             _patchService = patchService;
             _backgroundQueueService = backgroundQueueService;
+            _appSettings = appSettings;
         }
 
+        /// <summary>
+        /// Ensures that the window is draggable.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            // Allow the window to be draggable
             if (e.ChangedButton == MouseButton.Left) DragMove();
         }
 
+        /// <summary>
+        /// Handler for IsGameUpToDate.
+        /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
-
+        
+        /// <summary>
+        /// Handler for IsGameUpToDate.
+        /// </summary>
         protected void OnPropertyChanged(string property)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
 
+        /// <summary>
+        /// Shuts down the application on close button click.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void CloseBtn_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             Close();
         }
 
+        /// <summary>
+        /// Event that is triggered once the application main form has been initialised.
+        /// Triggers the methods to update the game client.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
         {
+            // Update title to the one from settings
+            Title = _appSettings.Value.Title;
+
+            // Check if client is already up to date
             var isClientUpToDate = await _patchService.IsClientUpToDateAsync();
             if (isClientUpToDate)
             {
+                // Change IsGameUpToDate to true which will
+                // Trigger the start game button styles and enable it
                 IsGameUpToDate = true;
                 OnPropertyChanged("IsGameUpToDate");
-                ResetProgressBar(100);
-                UpdateProgressLabel("Game is up to date. Click Start Game to start playing!");
+
+                // Reset the progress bar to 100 value and change
+                // Its intermediate property to false
+                await ResetProgressBar(100);
+                await UpdateControlThreadSafe(ProgressLabel, "Content",
+                    "Game is up to date. Click Start Game to start playing!");
             }
             else
             {
-                UpdateProgressLabel("Receiving update information...");
+                // Retrieve the queue of updates to install them
+                await UpdateControlThreadSafe(ProgressLabel, "Content",
+                    "Receiving update information...");
                 var updateQueue = await _patchService.GetUpdateQueueAsync();
 
-                ResetProgressBar();
-                ProgressLabel.Content = "Preparing to install updates...";
+                await ResetProgressBar();
+                await UpdateControlThreadSafe(ProgressLabel, "Content",
+                    "Preparing to install updates...");
 
+                // Processes the queue of files whether they have been
+                // Modified or deleted
                 await InstallUpdatesAsync(updateQueue);
             }
         }
 
+        /// <summary>
+        /// Processes a queue of updates. Downloads and deletes files if necessary.
+        /// </summary>
+        /// <param name="updateQueue"></param>
+        /// <returns></returns>
         private async Task InstallUpdatesAsync(Queue<CommitFile> updateQueue)
         {
             if (updateQueue.Count > 0)
@@ -90,60 +136,73 @@ namespace PkodevUpdater
 
                 updateQueue.Clear();
             }
-            
-            UpdateProgressLabel("Receiving latest client version...");
-            var lastCommit = await _commitService.GetLastCommitAsync();
 
-            UpdateProgressLabel("Updating game client version...");
+            // If the queue was empty for some reason
+            // Then we assume that client is up to date
+            // And overwrite the current version
+            // With the hash of the latest commit in the repository
+            await UpdateControlThreadSafe(ProgressLabel, "Content",
+                "Receiving latest client version...");
+            var lastCommit = await _commitService.GetLastCommitAsync();
+            
+            await UpdateControlThreadSafe(ProgressLabel, "Content",
+                "Updating game client version...");
             var updateClient = _patchService.SetClientVersion(lastCommit.Sha);
 
             if (updateClient)
             {
-                ResetProgressBar(100);
-                UpdateProgressLabel("Game is up to date. Click Start Game to start playing!");
+                await ResetProgressBar(100);
+                await UpdateControlThreadSafe(ProgressLabel, "Content",
+                    "Game is up to date. Click Start Game to start playing!");
 
                 IsGameUpToDate = true;
                 OnPropertyChanged("IsGameUpToDate");
             }
             else
             {
-                UpdateProgressLabel("An error occurred while updating version.");
+                // TODO: perhaps it would be a good idea to log all those errors
+                await UpdateControlThreadSafe(ProgressLabel, "Content",
+                    "An error occurred while updating version!");
             }
         }
 
-        private void DeleteFile(string file)
+        private async Task DeleteFile(string file)
         {
-            UpdateProgressLabel($"Removing file {file}");
+            await UpdateControlThreadSafe(ProgressLabel, "Content",
+                $"Removing file {file}");
             _patchService.TryDeleteFile(file);
         }
 
-        private void DownloadFile(CommitFile commitFile)
+        private async Task DownloadFile(CommitFile commitFile)
         {
-            UpdateProgressLabel($"Updating file {commitFile.Name}");
+            await UpdateControlThreadSafe(ProgressLabel, "Content",
+                $"Updating file {commitFile.Name}");
             _patchService.DownloadFile(commitFile.Url, commitFile.Name);
         }
 
-        private async void ResetProgressBar(int value = 0)
+        private static async Task UpdateControlThreadSafe(Control control, string propertyName,
+            object propertyValue)
         {
             await Task.Factory.StartNew(() =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    PkodevProgressBar.IsIndeterminate = false;
-                    PkodevProgressBar.Value = value;
+                    control.GetType().InvokeMember(
+                        propertyName,
+                        BindingFlags.SetProperty,
+                        null,
+                        control,
+                        new[] { propertyValue });
                 });
             });
         }
 
-        private async void UpdateProgressLabel(string content)
+        private async Task ResetProgressBar(int value = 0)
         {
-            await Task.Factory.StartNew(() =>
-            {
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    ProgressLabel.Content = content;
-                }));
-            });
+            // Update controls outside of main thread to not
+            // Block the GUI
+            await UpdateControlThreadSafe(PkodevProgressBar, "IsIndeterminate", false);
+            await UpdateControlThreadSafe(PkodevProgressBar, "Value", value);
         }
     }
 }

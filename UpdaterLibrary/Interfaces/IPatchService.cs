@@ -1,15 +1,18 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using UpdaterLibrary.Models;
 
 namespace UpdaterLibrary.Interfaces
 {
     public interface IPatchService
     {
-        public Queue<CommitFile> GetUpdateQueue();
+        public Task<string> GetCurrentClientVersionAsync();
 
-        public string GetCurrentClientVersion();
+        public Task<string> GetActualClientVersionAsync();
 
-        public bool IsClientUpToDate();
+        public Task<bool> IsClientUpToDateAsync();
+
+        public Task<Queue<CommitFile>> GetUpdateQueueAsync();
 
         public bool SetClientVersion(string commitSha);
     }

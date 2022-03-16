@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Octokit;
 using UpdaterLibrary.Interfaces;
 using UpdaterLibrary.Models;
 
@@ -20,18 +23,6 @@ namespace UpdaterLibrary.Services
             _commitService = commitService;
         }
 
-        public Queue<CommitFile> GetUpdateQueue()
-        {
-            // TODO: Retrieve a queue of files that need to be
-            // Updated based on its status (modified, added, deleted)
-
-            // To do that we need to get the current client commit hash
-            // And compare it against the latest available in the repository
-            // Then we get a list of files in between those commits
-            // And append them to this queue
-            return new Queue<CommitFile>();
-        }
-
         /// <summary>
         /// Retrieves the version of currently installed client
         /// from appsettings.json file.
@@ -39,16 +30,15 @@ namespace UpdaterLibrary.Services
         /// file, then by default first commit hash is used.
         /// </summary>
         /// <returns>A string value representing the hash of current client version.</returns>
-        public string GetCurrentClientVersion()
+        public async Task<string> GetCurrentClientVersionAsync()
         {
             var clientVersion = string.Empty;
 
             var clientCommitAt = _appSettings.Value.ClientCommitAt;
             if (string.IsNullOrEmpty(clientCommitAt))
             {
-                var firstCommit = _commitService.GetFirstCommitAsync()
-                    .GetAwaiter()
-                    .GetResult();
+                var firstCommit = await _commitService.GetFirstCommitAsync()
+                    .ConfigureAwait(false);
                 clientVersion = firstCommit.Sha;
             }
             else
@@ -59,17 +49,30 @@ namespace UpdaterLibrary.Services
             return clientVersion;
         }
 
+        public async Task<string> GetActualClientVersionAsync()
+        {
+            var lastCommit = await _commitService.GetLastCommitAsync()
+                .ConfigureAwait(false);
+
+            return lastCommit.Sha ?? string.Empty;
+        }
+
         /// <summary>
         /// Identifies if currently installed client is up to date.
         /// </summary>
         /// <returns>A boolean value indicating if client is up to date.</returns>
-        public bool IsClientUpToDate()
+        public async Task<bool> IsClientUpToDateAsync()
         {
-            var lastCommit = _commitService.GetLastCommitAsync()
-                .GetAwaiter()
-                .GetResult();
+            var actualClientVersion = await GetActualClientVersionAsync();
+            var currentClientVersion = await GetCurrentClientVersionAsync();
 
-            return lastCommit.Sha == GetCurrentClientVersion();
+            if (string.IsNullOrEmpty(actualClientVersion))
+            {
+                // TODO: throw exception rather than simply return false
+                return false;
+            }
+
+            return actualClientVersion == currentClientVersion;
         }
 
         /// <summary>
@@ -105,6 +108,63 @@ namespace UpdaterLibrary.Services
             {
                 return false;
             }
+        }
+
+        private async Task<IEnumerable<GitHubCommit>> GetMissingCommitsAsync()
+        {
+            var missingCommits = new List<GitHubCommit>();
+
+            var currentClientVersion = await GetCurrentClientVersionAsync();
+            var actualClientVersion = await GetActualClientVersionAsync();
+
+            if (currentClientVersion == actualClientVersion)
+            {
+                return missingCommits;
+            }
+
+            var allCommits = await _commitService.GetAllCommitsAsync();
+
+            var gitHubCommits = allCommits as GitHubCommit[] ?? allCommits.ToArray();
+            if (!gitHubCommits.Any()) return missingCommits;
+
+            missingCommits.AddRange(gitHubCommits.TakeWhile(commit => commit.Sha != currentClientVersion));
+
+            // Reverse items in missingCommits list
+            // Since we want to update the client chronologically
+            missingCommits.Reverse();
+
+            return missingCommits;
+        }
+
+        public async Task<Queue<CommitFile>> GetUpdateQueueAsync()
+        {
+            var updateQueue = new Queue<CommitFile>();
+            var missingCommits = await GetMissingCommitsAsync();
+
+            var gitHubCommits = missingCommits as GitHubCommit[] ?? missingCommits.ToArray();
+            if (!gitHubCommits.Any()) return updateQueue;
+
+            foreach (var commit in gitHubCommits)
+            {
+                // For some reason we can't directly access commit.Files
+                // So we need to retrieve it from commit service
+                var commitInfo = await _commitService.GetCommitInfoAsync(commit.Sha);
+
+                // Skip this commit if there are no updates for some reason
+                if (!commitInfo.Files.Any()) continue;
+
+                foreach (var commitFile in commitInfo.Files)
+                {
+                    updateQueue.Enqueue(new CommitFile
+                    {
+                        Name = commitFile.Filename,
+                        Status = commitFile.Status,
+                        Url = commitFile.RawUrl
+                    });
+                }
+            }
+
+            return updateQueue;
         }
     }
 }

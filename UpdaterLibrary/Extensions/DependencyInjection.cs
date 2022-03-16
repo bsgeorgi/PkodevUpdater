@@ -12,7 +12,6 @@ namespace UpdaterLibrary.Extensions
             services.TryAddSingleton<IOctokitGithubClientFactory, OctokitGithubClientFactory>();
             services.TryAddSingleton<IRepositoryService, RepositoryService>();
             services.TryAddSingleton<ICommitService, CommitService>();
-            services.TryAddSingleton<IVersionService, VersionService>();
             services.TryAddSingleton<IPatchService, PatchService>();
 
             return services;

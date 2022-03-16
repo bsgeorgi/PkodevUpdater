@@ -1,11 +1,9 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using Microsoft.Extensions.Options;
 using UpdaterLibrary.Interfaces;
-using UpdaterLibrary.Models;
 
 namespace PkodevUpdater
 {
@@ -15,24 +13,18 @@ namespace PkodevUpdater
     public partial class UpdaterWindow : Window, INotifyPropertyChanged
     {
         private readonly ICommitService _commitService;
-        private readonly IRepositoryService _repositoryService;
-        private readonly IVersionService _versionService;
-        private readonly IOptions<AppSettings> _appSettings;
+        private readonly IPatchService _patchService;
         public bool IsGameUpToDate { get; set; }
 
-        public UpdaterWindow(ICommitService commitService, IRepositoryService repositoryService,
-            IVersionService versionService, IOptions<AppSettings> appSettings)
+        public UpdaterWindow(ICommitService commitService, IPatchService patchService)
         {
+            _commitService = commitService;
+            _patchService = patchService;
             DataContext = this;
             InitializeComponent();
 
             IsGameUpToDate = true;
             OnPropertyChanged("IsGameUpToDate");
-
-            _commitService = commitService;
-            _repositoryService = repositoryService;
-            _versionService = versionService;
-            _appSettings = appSettings;
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -55,8 +47,27 @@ namespace PkodevUpdater
 
         private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
         {
-            var gameVersion = _versionService.UpdateClientVersion("afas");
-            MessageBox.Show(gameVersion.ToString());
+            var updates = await _patchService.GetUpdateQueueAsync();
+
+            ResetProgressBar();
+            ProgressLabel.Content = "Preparing to install updates...";
+
+            //foreach (var commit in updates)
+            //{
+            //    MessageBox.Show($"{commit.Name} - {commit.Status} - {commit.Url}");
+            //}
+        }
+
+        private async void ResetProgressBar()
+        {
+            await Task.Delay(100).ContinueWith(_ =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    PkodevProgressBar.IsIndeterminate = false;
+                    PkodevProgressBar.Value = 0;
+                });
+            });
         }
     }
 }

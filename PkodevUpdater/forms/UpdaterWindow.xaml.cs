@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using UpdaterLibrary.Interfaces;
+using UpdaterLibrary.Models;
 
 namespace PkodevUpdater
 {
@@ -14,17 +17,18 @@ namespace PkodevUpdater
     {
         private readonly ICommitService _commitService;
         private readonly IPatchService _patchService;
+        private readonly IBackgroundQueueService _backgroundQueueService;
         public bool IsGameUpToDate { get; set; }
 
-        public UpdaterWindow(ICommitService commitService, IPatchService patchService)
+        public UpdaterWindow(ICommitService commitService, IPatchService patchService,
+            IBackgroundQueueService backgroundQueueService)
         {
-            _commitService = commitService;
-            _patchService = patchService;
             DataContext = this;
             InitializeComponent();
 
-            IsGameUpToDate = true;
-            OnPropertyChanged("IsGameUpToDate");
+            _commitService = commitService;
+            _patchService = patchService;
+            _backgroundQueueService = backgroundQueueService;
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -47,26 +51,97 @@ namespace PkodevUpdater
 
         private async void FrameworkElement_OnInitialized(object? sender, EventArgs e)
         {
-            var updates = await _patchService.GetUpdateQueueAsync();
+            var isClientUpToDate = await _patchService.IsClientUpToDateAsync();
+            if (isClientUpToDate)
+            {
+                IsGameUpToDate = true;
+                OnPropertyChanged("IsGameUpToDate");
+                ResetProgressBar(100);
+                UpdateProgressLabel("Game is up to date. Click Start Game to start playing!");
+            }
+            else
+            {
+                UpdateProgressLabel("Receiving update information...");
+                var updateQueue = await _patchService.GetUpdateQueueAsync();
 
-            ResetProgressBar();
-            ProgressLabel.Content = "Preparing to install updates...";
+                ResetProgressBar();
+                ProgressLabel.Content = "Preparing to install updates...";
 
-            //foreach (var commit in updates)
-            //{
-            //    MessageBox.Show($"{commit.Name} - {commit.Status} - {commit.Url}");
-            //}
+                await InstallUpdatesAsync(updateQueue);
+            }
         }
 
-        private async void ResetProgressBar()
+        private async Task InstallUpdatesAsync(Queue<CommitFile> updateQueue)
+        {
+            if (updateQueue.Count > 0)
+            {
+                foreach (var commit in updateQueue)
+                {
+                    switch (commit.Status)
+                    {
+                        case "modified":
+                        case "added":
+                            _backgroundQueueService.QueueTask(() => DownloadFile(commit.Name)).Wait();
+                            break;
+                        case "removed":
+                            _backgroundQueueService.QueueTask(() => DeleteFile(commit.Name)).Wait();
+                            break;
+                    }
+                }
+
+                updateQueue.Clear();
+            }
+            
+            UpdateProgressLabel("Receiving latest client version...");
+            var lastCommit = await _commitService.GetLastCommitAsync();
+
+            UpdateProgressLabel("Updating game client version...");
+            var updateClient = _patchService.SetClientVersion(lastCommit.Sha);
+
+            if (updateClient)
+            {
+                ResetProgressBar(100);
+                UpdateProgressLabel("Game is up to date. Click Start Game to start playing!");
+
+                IsGameUpToDate = true;
+                OnPropertyChanged("IsGameUpToDate");
+            }
+            else
+            {
+                UpdateProgressLabel("An error occurred while updating version.");
+            }
+        }
+
+        private void DeleteFile(string file)
+        {
+            UpdateProgressLabel("Deleting file " + file);
+        }
+
+        private void DownloadFile(string file)
+        {
+            UpdateProgressLabel("Downloading file " + file);
+        }
+
+        private async void ResetProgressBar(int value = 0)
         {
             await Task.Delay(100).ContinueWith(_ =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     PkodevProgressBar.IsIndeterminate = false;
-                    PkodevProgressBar.Value = 0;
+                    PkodevProgressBar.Value = value;
                 });
+            });
+        }
+
+        private async void UpdateProgressLabel(string content)
+        {
+            await Task.Factory.StartNew(() =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    ProgressLabel.Content = content;
+                }));
             });
         }
     }

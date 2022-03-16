@@ -13,6 +13,7 @@ namespace UpdaterLibrary.Extensions
             services.TryAddSingleton<IRepositoryService, RepositoryService>();
             services.TryAddSingleton<ICommitService, CommitService>();
             services.TryAddSingleton<IPatchService, PatchService>();
+            services.TryAddSingleton<IBackgroundQueueService, BackgroundQueueService>();
 
             return services;
         }

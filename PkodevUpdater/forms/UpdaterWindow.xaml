@@ -89,7 +89,7 @@
         </Grid>
 
         <Grid Panel.ZIndex="2" Margin="25,534,25,9">
-            <Label x:Name="ProgressLabel" Content="Receiving update information..." HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FF919295" FontSize="10" Panel.ZIndex="2"/>
+            <Label x:Name="ProgressLabel" Content="Checking game version..." HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FF919295" FontSize="10" Panel.ZIndex="2"/>
             <ProgressBar Name="PkodevProgressBar" HorizontalAlignment="Left" Height="6" Margin="4,24,0,0" VerticalAlignment="Top" Width="320" BorderThickness="0,0,0,0" SnapsToDevicePixels="True" Value="10" Foreground="#1EFFFFFF" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="2" IsIndeterminate="True">
                 <ProgressBar.RenderTransform>
                     <TransformGroup>

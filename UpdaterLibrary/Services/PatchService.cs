@@ -236,6 +236,13 @@ namespace UpdaterLibrary.Services
         /// <param name="filePath"></param>
         public void TryDeleteFile(string file)
         {
+            // TODO: delete dir if it was the last file
+            // Delete parent dir too if its child dir is empty
+            // For instance:
+            // If there is only 1 file in texture/character called: 1.bmp
+            // texture/character/1.bmp
+            // Then invoking this function should also delete both texture and character folders
+
             var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             if (currentDirectory == null) return;
 

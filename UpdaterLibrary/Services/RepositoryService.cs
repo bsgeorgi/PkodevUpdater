@@ -18,6 +18,10 @@ namespace UpdaterLibrary.Services
             _appSettings = appSettings;
         }
 
+        /// <summary>
+        /// Retrieves an instance of the current repository.
+        /// </summary>
+        /// <returns>A Repository instance.</returns>
         public async Task<Repository?> GetRepositoryAsync()
         {
             if (string.IsNullOrWhiteSpace(_appSettings.Value.RepositoryName) ||

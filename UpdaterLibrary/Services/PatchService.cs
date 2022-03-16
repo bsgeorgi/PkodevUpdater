@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,18 +18,20 @@ namespace UpdaterLibrary.Services
     {
         private readonly IOptions<AppSettings> _appSettings;
         private readonly ICommitService _commitService;
+        public WebClient WebClient;
 
         public PatchService(IOptions<AppSettings> appSettings, ICommitService commitService)
         {
             _appSettings = appSettings;
             _commitService = commitService;
+            WebClient = new WebClient();
         }
 
         /// <summary>
         /// Retrieves the version of currently installed client
         /// from appsettings.json file.
-        /// If version is not present in the appsettings.json
-        /// file, then by default first commit hash is used.
+        /// If version is not present in appsettings.json file
+        /// then by default the first commit hash is used.
         /// </summary>
         /// <returns>A string value representing the hash of current client version.</returns>
         public async Task<string> GetCurrentClientVersionAsync()
@@ -49,10 +53,19 @@ namespace UpdaterLibrary.Services
             return clientVersion;
         }
 
+        /// <summary>
+        /// Retrieves the most recent hash of client repository.
+        /// </summary>
+        /// <returns>A string value representing the hash of the last commit in the repository.</returns>
         public async Task<string> GetActualClientVersionAsync()
         {
             var lastCommit = await _commitService.GetLastCommitAsync()
                 .ConfigureAwait(false);
+
+            if (lastCommit == null)
+            {
+                throw new NullReferenceException("GitHub commit is null.");
+            }
 
             return lastCommit.Sha ?? string.Empty;
         }
@@ -63,16 +76,17 @@ namespace UpdaterLibrary.Services
         /// <returns>A boolean value indicating if client is up to date.</returns>
         public async Task<bool> IsClientUpToDateAsync()
         {
-            var actualClientVersion = await GetActualClientVersionAsync();
-            var currentClientVersion = await GetCurrentClientVersionAsync();
-
-            if (string.IsNullOrEmpty(actualClientVersion))
+            try
             {
-                // TODO: throw exception rather than simply return false
+                var actualClientVersion = await GetActualClientVersionAsync();
+                var currentClientVersion = await GetCurrentClientVersionAsync();
+
+                return actualClientVersion == currentClientVersion;
+            }
+            catch
+            {
                 return false;
             }
-
-            return actualClientVersion == currentClientVersion;
         }
 
         /// <summary>
@@ -86,6 +100,11 @@ namespace UpdaterLibrary.Services
             try
             {
                 var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                if (currentDirectory == null)
+                {
+                    throw new NullReferenceException("Current directory path is null");
+                }
+
                 var appSettingsFile = Path.Combine(currentDirectory, "appsettings.json");
 
                 if (!File.Exists(appSettingsFile))
@@ -102,6 +121,7 @@ namespace UpdaterLibrary.Services
 
                 var json = JsonConvert.SerializeObject(jsonObject, Formatting.Indented);
                 File.WriteAllText(appSettingsFile, json);
+
                 return true;
             }
             catch
@@ -110,32 +130,49 @@ namespace UpdaterLibrary.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves a list of commits that are missing in the current client version.
+        /// </summary>
+        /// <returns>A list of commits.</returns>
         private async Task<IEnumerable<GitHubCommit>> GetMissingCommitsAsync()
         {
             var missingCommits = new List<GitHubCommit>();
 
-            var currentClientVersion = await GetCurrentClientVersionAsync();
-            var actualClientVersion = await GetActualClientVersionAsync();
-
-            if (currentClientVersion == actualClientVersion)
+            try
             {
-                return missingCommits;
+                var currentClientVersion = await GetCurrentClientVersionAsync();
+                var actualClientVersion = await GetActualClientVersionAsync();
+
+                if (currentClientVersion == actualClientVersion)
+                {
+                    return missingCommits;
+                }
+
+                var allCommits = await _commitService.GetAllCommitsAsync();
+
+                var gitHubCommits = allCommits as GitHubCommit[] ?? allCommits.ToArray();
+                if (!gitHubCommits.Any()) return missingCommits;
+
+                missingCommits.AddRange(gitHubCommits.TakeWhile(commit => commit.Sha != currentClientVersion));
+
+                // Reverse items in missingCommits list
+                // Since we want to update the client chronologically
+                missingCommits.Reverse();
+
             }
-
-            var allCommits = await _commitService.GetAllCommitsAsync();
-
-            var gitHubCommits = allCommits as GitHubCommit[] ?? allCommits.ToArray();
-            if (!gitHubCommits.Any()) return missingCommits;
-
-            missingCommits.AddRange(gitHubCommits.TakeWhile(commit => commit.Sha != currentClientVersion));
-
-            // Reverse items in missingCommits list
-            // Since we want to update the client chronologically
-            missingCommits.Reverse();
+            catch
+            {
+                // ignored
+            }
 
             return missingCommits;
         }
 
+        /// <summary>
+        /// Retrieves a queue of updates required to bring the current
+        /// client up to date.
+        /// </summary>
+        /// <returns>A queue of ComitFile objects.</returns>
         public async Task<Queue<CommitFile>> GetUpdateQueueAsync()
         {
             var updateQueue = new Queue<CommitFile>();
@@ -165,6 +202,56 @@ namespace UpdaterLibrary.Services
             }
 
             return updateQueue;
+        }
+
+        /// <summary>
+        /// Downloads a file to current directory.
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="fileName"></param>
+        public void DownloadFile(string url, string filePath)
+        {
+            try
+            {
+                var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                if (currentDirectory == null) return;
+
+                var path = Path.Combine(currentDirectory, filePath);
+
+                // Create a folder if it does not exist for some reason
+                var directory = new FileInfo(path).Directory.FullName;
+                var dir = Directory.CreateDirectory(directory);
+
+                WebClient.DownloadFile(url, path);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        /// <summary>
+        /// Tries to delete the specified file.
+        /// </summary>
+        /// <param name="filePath"></param>
+        public void TryDeleteFile(string file)
+        {
+            var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            if (currentDirectory == null) return;
+
+            var filePath = Path.Combine(currentDirectory, file);
+
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
     }
 }

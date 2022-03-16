@@ -15,5 +15,9 @@ namespace UpdaterLibrary.Interfaces
         public Task<Queue<CommitFile>> GetUpdateQueueAsync();
 
         public bool SetClientVersion(string commitSha);
+
+        public void DownloadFile(string url, string filePath);
+
+        public void TryDeleteFile(string file);
     }
 }

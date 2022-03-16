@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
@@ -81,7 +80,7 @@ namespace PkodevUpdater
                     {
                         case "modified":
                         case "added":
-                            _backgroundQueueService.QueueTask(() => DownloadFile(commit.Name)).Wait();
+                            _backgroundQueueService.QueueTask(() => DownloadFile(commit)).Wait();
                             break;
                         case "removed":
                             _backgroundQueueService.QueueTask(() => DeleteFile(commit.Name)).Wait();
@@ -114,17 +113,19 @@ namespace PkodevUpdater
 
         private void DeleteFile(string file)
         {
-            UpdateProgressLabel("Deleting file " + file);
+            UpdateProgressLabel($"Removing file {file}");
+            _patchService.TryDeleteFile(file);
         }
 
-        private void DownloadFile(string file)
+        private void DownloadFile(CommitFile commitFile)
         {
-            UpdateProgressLabel("Downloading file " + file);
+            UpdateProgressLabel($"Updating file {commitFile.Name}");
+            _patchService.DownloadFile(commitFile.Url, commitFile.Name);
         }
 
         private async void ResetProgressBar(int value = 0)
         {
-            await Task.Delay(100).ContinueWith(_ =>
+            await Task.Factory.StartNew(() =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {

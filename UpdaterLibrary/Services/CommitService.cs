@@ -25,6 +25,10 @@ namespace UpdaterLibrary.Services
             _repositoryService = repositoryService;
         }
 
+        /// <summary>
+        /// Retrieves all commits that belong to the current repository.
+        /// </summary>
+        /// <returns>IEnumerable of GitHubCommit objects.</returns>
         public async Task<IEnumerable<GitHubCommit>?> GetAllCommitsAsync()
         {
             if (string.IsNullOrWhiteSpace(_appSettings.Value.RepositoryName) ||
@@ -46,6 +50,11 @@ namespace UpdaterLibrary.Services
             return commits.ToList();
         }
 
+        /// <summary>
+        /// Retrieves info associated with the specified hash.
+        /// </summary>
+        /// <param name="commitSha">A hash of the commit.</param>
+        /// <returns>A GitHubCommit object of the specified commit hash.</returns>
         public async Task<GitHubCommit> GetCommitInfoAsync(string commitSha)
         {
             if (string.IsNullOrEmpty(commitSha))
@@ -66,6 +75,10 @@ namespace UpdaterLibrary.Services
             return commitDetails;
         }
 
+        /// <summary>
+        /// Retrieves the latest commit from the repository.
+        /// </summary>
+        /// <returns>A GitHubCommit object.</returns>
         public async Task<GitHubCommit> GetLastCommitAsync()
         {
             var commits = await GetAllCommitsAsync()
@@ -79,6 +92,10 @@ namespace UpdaterLibrary.Services
             return commits.First();
         }
 
+        /// <summary>
+        /// Retrieves the first commit from the repository.
+        /// </summary>
+        /// <returns>A GitHubCommit object.</returns>
         public async Task<GitHubCommit> GetFirstCommitAsync()
         {
             var commits = await GetAllCommitsAsync()

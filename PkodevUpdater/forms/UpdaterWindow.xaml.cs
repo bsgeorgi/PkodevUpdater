@@ -69,6 +69,22 @@ namespace PkodevUpdater.Forms
         }
 
         /// <summary>
+        /// Shuts down the application and start the game on start game button click.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void StartGameBtn_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (IsGameUpToDate)
+            {
+                string filename = "Start Game.bat";
+                string parameters = $"/k \"{filename}\"" + " & exit";
+                Process.Start("cmd", parameters);
+                Close();
+            }
+        }
+
+        /// <summary>
         /// Event that is triggered once the application main form has been initialised.
         /// Triggers the methods to update the game client.
         /// </summary>

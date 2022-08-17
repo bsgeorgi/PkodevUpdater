@@ -59,7 +59,7 @@
                 </Style>
             </Grid.Style>
 
-            <Rectangle Name="StartGameBtn" HorizontalAlignment="Center" Height="50" VerticalAlignment="Top" Width="320" StrokeThickness="0" RadiusX="10" RadiusY="10" Panel.ZIndex="2">
+            <Rectangle Name="StartGameBtn" HorizontalAlignment="Center" Height="50" VerticalAlignment="Top" Width="320" StrokeThickness="0" RadiusX="10" RadiusY="10" Panel.ZIndex="2" MouseLeftButtonDown="StartGameBtn_MouseLeftButtonDown">
                 <Rectangle.Style>
                     <Style TargetType="{x:Type Rectangle}">
                         <Setter Property="Fill" Value="#FF57545F"/>

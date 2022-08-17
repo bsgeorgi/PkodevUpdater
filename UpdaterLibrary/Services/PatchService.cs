@@ -231,7 +231,8 @@ namespace UpdaterLibrary.Services
                     _ = Directory.CreateDirectory(directory);
                 }
 
-                WebClient.DownloadFile(url, path);
+                WebClient client = new WebClient();
+                client.DownloadFileAsync(new Uri(url), path);
             }
             catch
             {

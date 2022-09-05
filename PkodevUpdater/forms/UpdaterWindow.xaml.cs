@@ -126,10 +126,10 @@ namespace PkodevUpdater.Forms
                     {
                         case "modified":
                         case "added":
-                            _backgroundQueueService.QueueTask(() => DownloadFile(commit)).Wait();
+                            await Task.Run(() => DownloadFile(commit));
                             break;
                         case "removed":
-                            _backgroundQueueService.QueueTask(() => DeleteFile(commit.Name)).Wait();
+                            await Task.Run(() => DeleteFile(commit.Name));
                             break;
                     }
                 }
